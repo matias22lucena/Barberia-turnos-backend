@@ -2,6 +2,9 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import pool from "./config/database.js";
+import serviciosRoutes from "./routes/servicios.routes.js";
+import { notFoundHandler } from "./middlewares/notFound.middleware.js";
+import { errorHandler } from "./middlewares/error.middleware.js";
 
 const app = express();
 
@@ -32,5 +35,10 @@ app.get("/api/health", async (req, res) => {
     });
   }
 });
+
+app.use("/api/servicios", serviciosRoutes);
+
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 export default app;
