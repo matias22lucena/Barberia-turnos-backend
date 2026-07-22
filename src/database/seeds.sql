@@ -31,3 +31,47 @@ VALUES
     20,
     2500.00
 );
+
+
+INSERT INTO barberos (
+    nombre,
+    apellido,
+    descripcion,
+    foto_url
+)
+VALUES
+(
+    'Juan',
+    NULL,
+    'Fades y cortes clásicos',
+    NULL
+),
+(
+    'Facundo',
+    NULL,
+    'Diseños y degradados',
+    NULL
+),
+(
+    'Matías',
+    NULL,
+    'Barba y navaja',
+    NULL
+);
+
+INSERT IGNORE INTO barbero_servicios (
+    barbero_id,
+    servicio_id
+)
+VALUES
+    (1, 1),
+    (1, 2),
+    (1, 3),
+
+    (2, 1),
+    (2, 2),
+    (2, 4),
+
+    (3, 1),
+    (3, 2),
+    (3, 3);

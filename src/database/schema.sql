@@ -24,3 +24,69 @@ CREATE TABLE IF NOT EXISTS servicios (
     UNIQUE KEY uk_servicios_nombre (nombre),
     INDEX idx_servicios_activo (activo)
 );
+
+CREATE TABLE IF NOT EXISTS barberos (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    apellido VARCHAR(100) NULL,
+    descripcion VARCHAR(255) NULL,
+    foto_url VARCHAR(500) NULL,
+    activo BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    INDEX idx_barberos_activo (activo)
+);
+
+CREATE TABLE IF NOT EXISTS barbero_servicios (
+    barbero_id INT UNSIGNED NOT NULL,
+    servicio_id INT UNSIGNED NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (barbero_id, servicio_id),
+
+    CONSTRAINT fk_barbero_servicios_barbero
+        FOREIGN KEY (barbero_id)
+        REFERENCES barberos(id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_barbero_servicios_servicio
+        FOREIGN KEY (servicio_id)
+        REFERENCES servicios(id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+
+    INDEX idx_barbero_servicios_servicio (servicio_id)
+);
+
+USE barberia_turnos;
+
+DELETE FROM barbero_servicios;
+DELETE FROM barberos;
+
+ALTER TABLE barberos AUTO_INCREMENT = 1;
+
+INSERT INTO barberos (
+    nombre,
+    apellido,
+    descripcion,
+    foto_url
+)
+VALUES (
+    'Juan',
+    NULL,
+    'Barbero principal',
+    NULL
+);
+
+INSERT INTO barbero_servicios (
+    barbero_id,
+    servicio_id
+)
+SELECT
+    1,
+    id
+FROM servicios
+WHERE activo = 1;
