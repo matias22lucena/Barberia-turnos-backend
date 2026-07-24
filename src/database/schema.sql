@@ -90,3 +90,35 @@ SELECT
     id
 FROM servicios
 WHERE activo = 1;
+
+
+//feature/horarios-barbero
+CREATE TABLE IF NOT EXISTS horarios_barberos (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    barbero_id INT UNSIGNED NOT NULL,
+    dia_semana TINYINT UNSIGNED NOT NULL,
+    hora_inicio TIME NOT NULL,
+    hora_fin TIME NOT NULL,
+    activo BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_horarios_barbero
+        FOREIGN KEY (barbero_id)
+        REFERENCES barberos(id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+
+    CONSTRAINT chk_dia_semana
+        CHECK (dia_semana BETWEEN 1 AND 7),
+
+    CONSTRAINT chk_horario_valido
+        CHECK (hora_fin > hora_inicio),
+
+    INDEX idx_horarios_barbero_dia (
+        barbero_id,
+        dia_semana,
+        activo
+    )
+);
