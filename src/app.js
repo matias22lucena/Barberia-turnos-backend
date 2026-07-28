@@ -5,6 +5,7 @@ import pool from "./config/database.js";
 import serviciosRoutes from "./routes/servicios.routes.js";
 import barberosRoutes from "./routes/barberos.routes.js";
 import horariosRoutes from "./routes/horarios.routes.js";
+import disponibilidadRoutes from "./routes/disponibilidad.routes.js";
 import { notFoundHandler } from "./middlewares/notFound.middleware.js";
 import { errorHandler } from "./middlewares/error.middleware.js";
 
@@ -41,6 +42,7 @@ app.get("/api/health", async (req, res) => {
 app.use("/api/servicios", serviciosRoutes);
 app.use("/api/barberos", barberosRoutes);
 app.use("/api/horarios", horariosRoutes);
+app.use("/api/disponibilidad", disponibilidadRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
