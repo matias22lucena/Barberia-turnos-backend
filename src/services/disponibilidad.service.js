@@ -2,10 +2,15 @@ import {
   obtenerBarberoPorId,
   obtenerFranjasLaborales,
   obtenerServicioPorId,
+  obtenerTurnosOcupadosPorFecha,
   verificarBarberoRealizaServicio,
 } from "../repositories/disponibilidad.repository.js";
 
-import { generarHorariosDeFranja } from "../utils/horas.js";
+import {
+  convertirHoraAMinutos,
+  generarHorariosDeFranja,
+  sumarMinutosAHora,
+} from "../utils/horas.js";
 
 const validarId = (valor, nombreCampo) => {
   const id = Number(valor);
@@ -50,16 +55,45 @@ const convertirDiaJavaScriptADiaBaseDatos = (diaJavaScript) => {
   return diaJavaScript === 0 ? 7 : diaJavaScript;
 };
 
+const horarioSeSuperpone = ({
+  nuevaHoraInicio,
+  nuevaHoraFin,
+  turnoExistente,
+}) => {
+  const nuevoInicioMinutos =
+    convertirHoraAMinutos(nuevaHoraInicio);
+
+  const nuevoFinMinutos =
+    convertirHoraAMinutos(nuevaHoraFin);
+
+  const turnoInicioMinutos =
+    convertirHoraAMinutos(turnoExistente.horaInicio);
+
+  const turnoFinMinutos =
+    convertirHoraAMinutos(turnoExistente.horaFin);
+
+  return (
+    nuevoInicioMinutos < turnoFinMinutos &&
+    nuevoFinMinutos > turnoInicioMinutos
+  );
+};
+
 export const obtenerDisponibilidad = async ({
   barberoId,
   servicioId,
   fecha,
 }) => {
   const barberoIdValidado = validarId(barberoId, "barberoId");
-  const servicioIdValidado = validarId(servicioId, "servicioId");
+  const servicioIdValidado = validarId(
+    servicioId,
+    "servicioId"
+  );
+
   const fechaObjeto = validarFecha(fecha);
 
-  const servicio = await obtenerServicioPorId(servicioIdValidado);
+  const servicio = await obtenerServicioPorId(
+    servicioIdValidado
+  );
 
   if (!servicio || !servicio.activo) {
     const error = new Error(
@@ -70,7 +104,9 @@ export const obtenerDisponibilidad = async ({
     throw error;
   }
 
-  const barbero = await obtenerBarberoPorId(barberoIdValidado);
+  const barbero = await obtenerBarberoPorId(
+    barberoIdValidado
+  );
 
   if (!barbero || !barbero.activo) {
     const error = new Error(
@@ -81,10 +117,11 @@ export const obtenerDisponibilidad = async ({
     throw error;
   }
 
-  const realizaServicio = await verificarBarberoRealizaServicio(
-    barberoIdValidado,
-    servicioIdValidado
-  );
+  const realizaServicio =
+    await verificarBarberoRealizaServicio(
+      barberoIdValidado,
+      servicioIdValidado
+    );
 
   if (!realizaServicio) {
     const error = new Error(
@@ -104,13 +141,38 @@ export const obtenerDisponibilidad = async ({
     diaSemana
   );
 
-  const horariosDisponibles = franjas.flatMap((franja) =>
+  const turnosOcupados = await obtenerTurnosOcupadosPorFecha(
+    barberoIdValidado,
+    fecha
+  );
+
+  const horariosGenerados = franjas.flatMap((franja) =>
     generarHorariosDeFranja({
       horaInicio: franja.horaInicio,
       horaFin: franja.horaFin,
       duracionServicio: servicio.duracionMinutos,
       intervaloMinutos: 30,
     })
+  );
+
+  const horariosDisponibles = horariosGenerados.filter(
+    (horaInicio) => {
+      const horaFin = sumarMinutosAHora(
+        horaInicio,
+        servicio.duracionMinutos
+      );
+
+      const tieneSuperposicion = turnosOcupados.some(
+        (turnoExistente) =>
+          horarioSeSuperpone({
+            nuevaHoraInicio: horaInicio,
+            nuevaHoraFin: horaFin,
+            turnoExistente,
+          })
+      );
+
+      return !tieneSuperposicion;
+    }
   );
 
   return {

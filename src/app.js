@@ -6,6 +6,7 @@ import serviciosRoutes from "./routes/servicios.routes.js";
 import barberosRoutes from "./routes/barberos.routes.js";
 import horariosRoutes from "./routes/horarios.routes.js";
 import disponibilidadRoutes from "./routes/disponibilidad.routes.js";
+import turnosRoutes from "./routes/turnos.routes.js";
 import { notFoundHandler } from "./middlewares/notFound.middleware.js";
 import { errorHandler } from "./middlewares/error.middleware.js";
 
@@ -43,6 +44,7 @@ app.use("/api/servicios", serviciosRoutes);
 app.use("/api/barberos", barberosRoutes);
 app.use("/api/horarios", horariosRoutes);
 app.use("/api/disponibilidad", disponibilidadRoutes);
+app.use("/api/turnos", turnosRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

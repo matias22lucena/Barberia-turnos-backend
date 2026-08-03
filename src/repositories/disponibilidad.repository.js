@@ -75,3 +75,25 @@ export const obtenerFranjasLaborales = async (
 
   return rows;
 };
+
+export const obtenerTurnosOcupadosPorFecha = async (
+  barberoId,
+  fecha
+) => {
+  const [rows] = await pool.execute(
+    `
+      SELECT
+        id,
+        TIME_FORMAT(hora_inicio, '%H:%i') AS horaInicio,
+        TIME_FORMAT(hora_fin, '%H:%i') AS horaFin
+      FROM turnos
+      WHERE barbero_id = ?
+        AND fecha = ?
+        AND estado = 'CONFIRMADO'
+      ORDER BY hora_inicio ASC
+    `,
+    [barberoId, fecha]
+  );
+
+  return rows;
+};

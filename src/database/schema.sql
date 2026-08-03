@@ -122,3 +122,86 @@ CREATE TABLE IF NOT EXISTS horarios_barberos (
         activo
     )
 );
+
+USE barberia_turnos;
+
+CREATE TABLE IF NOT EXISTS clientes (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(120) NOT NULL,
+    telefono VARCHAR(30) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    UNIQUE KEY uk_clientes_telefono (telefono)
+);
+
+CREATE TABLE IF NOT EXISTS turnos (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    codigo VARCHAR(12) NOT NULL,
+    cliente_id INT UNSIGNED NOT NULL,
+    barbero_id INT UNSIGNED NOT NULL,
+    servicio_id INT UNSIGNED NOT NULL,
+
+    fecha DATE NOT NULL,
+    hora_inicio TIME NOT NULL,
+    hora_fin TIME NOT NULL,
+
+    duracion_minutos SMALLINT UNSIGNED NOT NULL,
+    precio DECIMAL(10, 2) NOT NULL,
+
+    observacion VARCHAR(500) NULL,
+
+    estado ENUM(
+        'CONFIRMADO',
+        'CANCELADO',
+        'COMPLETADO',
+        'AUSENTE'
+    ) NOT NULL DEFAULT 'CONFIRMADO',
+
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_turnos_cliente
+        FOREIGN KEY (cliente_id)
+        REFERENCES clientes(id)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
+
+    CONSTRAINT fk_turnos_barbero
+        FOREIGN KEY (barbero_id)
+        REFERENCES barberos(id)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
+
+    CONSTRAINT fk_turnos_servicio
+        FOREIGN KEY (servicio_id)
+        REFERENCES servicios(id)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
+
+    CONSTRAINT chk_turnos_duracion
+        CHECK (duracion_minutos > 0),
+
+    CONSTRAINT chk_turnos_precio
+        CHECK (precio >= 0),
+
+    CONSTRAINT chk_turnos_horas
+        CHECK (hora_fin > hora_inicio),
+
+    UNIQUE KEY uk_turnos_codigo (codigo),
+
+    INDEX idx_turnos_barbero_fecha (
+        barbero_id,
+        fecha,
+        estado
+    ),
+
+    INDEX idx_turnos_cliente (cliente_id),
+
+    INDEX idx_turnos_fecha_estado (
+        fecha,
+        estado
+    )
+);

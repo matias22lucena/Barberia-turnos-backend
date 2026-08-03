@@ -14,6 +14,13 @@ export const convertirMinutosAHora = (minutosTotales) => {
   )}`;
 };
 
+export const sumarMinutosAHora = (hora, minutosASumar) => {
+  const horaEnMinutos = convertirHoraAMinutos(hora);
+  const resultado = horaEnMinutos + minutosASumar;
+
+  return convertirMinutosAHora(resultado);
+};
+
 export const generarHorariosDeFranja = ({
   horaInicio,
   horaFin,
