@@ -14,7 +14,11 @@ import {
 } from "../repositories/turnos.repository.js";
 
 import { generarCodigoTurno } from "../utils/codigos.js";
-import { sumarMinutosAHora } from "../utils/horas.js";
+import {
+  convertirHoraAMinutos,
+  sumarMinutosAHora,
+} from "../utils/horas.js";
+import { obtenerFechaHoraActualArgentina } from "../utils/fechaHora.js";
 
 const validarId = (valor, nombreCampo) => {
   const id = Number(valor);
@@ -85,6 +89,30 @@ export const registrarTurno = async ({
   const servicioIdValidado = validarId(servicioId, "servicioId");
   const fechaObjeto = validarFecha(fecha);
   const horaInicio = validarHora(hora);
+
+  const fechaHoraActual = obtenerFechaHoraActualArgentina();
+
+  if (fecha < fechaHoraActual.fecha) {
+    const error = new Error(
+      "No se puede reservar un turno en una fecha pasada"
+    );
+
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (
+    fecha === fechaHoraActual.fecha &&
+    convertirHoraAMinutos(horaInicio) <=
+      fechaHoraActual.minutosActuales
+  ) {
+    const error = new Error(
+      "El horario seleccionado ya pasó"
+    );
+
+    error.statusCode = 400;
+    throw error;
+  }
 
   const nombre = String(cliente?.nombre || "").trim();
   const telefono = limpiarTelefono(cliente?.telefono);
@@ -218,7 +246,7 @@ export const registrarTurno = async ({
       throw error;
     }
 
-    let clienteExistente = await buscarClientePorTelefono(
+    const clienteExistente = await buscarClientePorTelefono(
       connection,
       telefono
     );

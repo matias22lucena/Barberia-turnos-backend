@@ -4,6 +4,7 @@ import {
   obtenerServicioPorId,
   obtenerTurnosOcupadosPorFecha,
   verificarBarberoRealizaServicio,
+  
 } from "../repositories/disponibilidad.repository.js";
 
 import {
@@ -11,6 +12,8 @@ import {
   generarHorariosDeFranja,
   sumarMinutosAHora,
 } from "../utils/horas.js";
+
+import { obtenerFechaHoraActualArgentina } from "../utils/fechaHora.js";
 
 const validarId = (valor, nombreCampo) => {
   const id = Number(valor);
@@ -155,25 +158,43 @@ export const obtenerDisponibilidad = async ({
     })
   );
 
-  const horariosDisponibles = horariosGenerados.filter(
-    (horaInicio) => {
-      const horaFin = sumarMinutosAHora(
-        horaInicio,
-        servicio.duracionMinutos
-      );
+const horariosSinSuperposiciones = horariosGenerados.filter(
+  (horaInicio) => {
+    const horaFin = sumarMinutosAHora(
+      horaInicio,
+      servicio.duracionMinutos
+    );
 
-      const tieneSuperposicion = turnosOcupados.some(
-        (turnoExistente) =>
-          horarioSeSuperpone({
-            nuevaHoraInicio: horaInicio,
-            nuevaHoraFin: horaFin,
-            turnoExistente,
-          })
-      );
+    const tieneSuperposicion = turnosOcupados.some(
+      (turnoExistente) =>
+        horarioSeSuperpone({
+          nuevaHoraInicio: horaInicio,
+          nuevaHoraFin: horaFin,
+          turnoExistente,
+        })
+    );
 
-      return !tieneSuperposicion;
-    }
+    return !tieneSuperposicion;
+  }
+);
+
+const fechaHoraActual = obtenerFechaHoraActualArgentina();
+
+let horariosDisponibles = horariosSinSuperposiciones;
+
+// Una fecha anterior a hoy no puede tener disponibilidad.
+if (fecha < fechaHoraActual.fecha) {
+  horariosDisponibles = [];
+}
+
+// Para hoy, eliminamos horarios que ya comenzaron.
+if (fecha === fechaHoraActual.fecha) {
+  horariosDisponibles = horariosSinSuperposiciones.filter(
+    (horaInicio) =>
+      convertirHoraAMinutos(horaInicio) >
+      fechaHoraActual.minutosActuales
   );
+}
 
   return {
     fecha,
