@@ -8,9 +8,12 @@ const startServer = async () => {
   try {
     await checkDatabaseConnection();
 
-    app.listen(PORT, () => {
+/*     app.listen(PORT, () => {
       console.log(`Servidor funcionando en http://localhost:${PORT}`);
-    });
+    }); */
+    app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Servidor funcionando en el puerto ${PORT}`);
+});
   } catch (error) {
     console.error("No se pudo iniciar el servidor");
     process.exit(1);
