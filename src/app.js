@@ -7,6 +7,8 @@ import barberosRoutes from "./routes/barberos.routes.js";
 import horariosRoutes from "./routes/horarios.routes.js";
 import disponibilidadRoutes from "./routes/disponibilidad.routes.js";
 import turnosRoutes from "./routes/turnos.routes.js";
+import authRoutes from "./routes/auth.routes.js";
+import adminRoutes from "./routes/admin.routes.js";
 import { notFoundHandler } from "./middlewares/notFound.middleware.js";
 import { errorHandler } from "./middlewares/error.middleware.js";
 
@@ -16,7 +18,14 @@ app.use(helmet());
 
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    /* origin: process.env.FRONTEND_URL || "http://localhost:5173", */
+
+
+    origin: [
+      "http://localhost:5173",
+      "http://192.168.100.17:5173",
+    ],
+
   })
 );
 
@@ -45,6 +54,8 @@ app.use("/api/barberos", barberosRoutes);
 app.use("/api/horarios", horariosRoutes);
 app.use("/api/disponibilidad", disponibilidadRoutes);
 app.use("/api/turnos", turnosRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

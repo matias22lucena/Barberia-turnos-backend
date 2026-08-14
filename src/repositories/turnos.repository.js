@@ -266,3 +266,111 @@ export const obtenerTurnoCreado = async (
 
   return rows[0] || null;
 };
+export const listarTurnosAdmin = async (
+  connection,
+  {
+    fecha,
+    estado,
+  } = {}
+) => {
+  const condiciones = [];
+  const parametros = [];
+
+  if (fecha) {
+    condiciones.push("t.fecha = ?");
+    parametros.push(fecha);
+  }
+
+  if (estado) {
+    condiciones.push("t.estado = ?");
+    parametros.push(estado);
+  }
+
+  const where =
+    condiciones.length > 0
+      ? `WHERE ${condiciones.join(" AND ")}`
+      : "";
+
+  const [rows] = await connection.execute(
+    `
+      SELECT
+        t.id,
+        t.codigo,
+        DATE_FORMAT(t.fecha, '%Y-%m-%d') AS fecha,
+        TIME_FORMAT(t.hora_inicio, '%H:%i') AS horaInicio,
+        TIME_FORMAT(t.hora_fin, '%H:%i') AS horaFin,
+        t.duracion_minutos AS duracionMinutos,
+        t.precio,
+        t.observacion,
+        t.estado,
+        t.created_at AS createdAt,
+
+        c.id AS clienteId,
+        c.nombre AS clienteNombre,
+        c.telefono AS clienteTelefono,
+
+        b.id AS barberoId,
+        b.nombre AS barberoNombre,
+        b.apellido AS barberoApellido,
+
+        s.id AS servicioId,
+        s.nombre AS servicioNombre
+
+      FROM turnos t
+
+      INNER JOIN clientes c
+        ON c.id = t.cliente_id
+
+      INNER JOIN barberos b
+        ON b.id = t.barbero_id
+
+      INNER JOIN servicios s
+        ON s.id = t.servicio_id
+
+      ${where}
+
+      ORDER BY
+        t.fecha ASC,
+        t.hora_inicio ASC
+    `,
+    parametros
+  );
+
+  return rows;
+};
+
+export const buscarTurnoAdminPorId = async (
+  connection,
+  turnoId
+) => {
+  const [rows] = await connection.execute(
+    `
+      SELECT
+        id,
+        estado
+      FROM turnos
+      WHERE id = ?
+      LIMIT 1
+    `,
+    [turnoId]
+  );
+
+  return rows[0] || null;
+};
+
+export const actualizarEstadoTurno = async (
+  connection,
+  {
+    turnoId,
+    estado,
+  }
+) => {
+  await connection.execute(
+    `
+      UPDATE turnos
+      SET estado = ?
+      WHERE id = ?
+    `,
+    [estado, turnoId]
+  );
+};
