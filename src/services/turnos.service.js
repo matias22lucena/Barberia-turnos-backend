@@ -1,31 +1,45 @@
 import pool from "../config/database.js";
 
 import {
-  actualizarNombreCliente,
   bloquearBarbero,
-  buscarClientePorTelefono,
   buscarTurnoSuperpuesto,
-  crearCliente,
   crearTurno,
+  obtenerPromocionParaTurno,
   obtenerServicioParaTurno,
   obtenerTurnoCreado,
   verificarHorarioLaboral,
   verificarRelacionBarberoServicio,
 } from "../repositories/turnos.repository.js";
 
-import { generarCodigoTurno } from "../utils/codigos.js";
+import {
+  generarCodigoTurno,
+} from "../utils/codigos.js";
+
 import {
   convertirHoraAMinutos,
   sumarMinutosAHora,
 } from "../utils/horas.js";
-import { obtenerFechaHoraActualArgentina } from "../utils/fechaHora.js";
 
-const validarId = (valor, nombreCampo) => {
+import {
+  obtenerFechaHoraActualArgentina,
+} from "../utils/fechaHora.js";
+
+const validarId = (
+  valor,
+  nombreCampo
+) => {
   const id = Number(valor);
 
-  if (!Number.isInteger(id) || id <= 0) {
-    const error = new Error(`${nombreCampo} no es válido`);
+  if (
+    !Number.isInteger(id) ||
+    id <= 0
+  ) {
+    const error = new Error(
+      `${nombreCampo} no es válido`
+    );
+
     error.statusCode = 400;
+
     throw error;
   }
 
@@ -33,7 +47,8 @@ const validarId = (valor, nombreCampo) => {
 };
 
 const validarFecha = (fecha) => {
-  const formato = /^\d{4}-\d{2}-\d{2}$/;
+  const formato =
+    /^\d{4}-\d{2}-\d{2}$/;
 
   if (!formato.test(fecha)) {
     const error = new Error(
@@ -41,14 +56,26 @@ const validarFecha = (fecha) => {
     );
 
     error.statusCode = 400;
+
     throw error;
   }
 
-  const fechaObjeto = new Date(`${fecha}T12:00:00`);
+  const fechaObjeto =
+    new Date(
+      `${fecha}T12:00:00`
+    );
 
-  if (Number.isNaN(fechaObjeto.getTime())) {
-    const error = new Error("La fecha no es válida");
+  if (
+    Number.isNaN(
+      fechaObjeto.getTime()
+    )
+  ) {
+    const error = new Error(
+      "La fecha no es válida"
+    );
+
     error.statusCode = 400;
+
     throw error;
   }
 
@@ -56,7 +83,8 @@ const validarFecha = (fecha) => {
 };
 
 const validarHora = (hora) => {
-  const formato = /^([01]\d|2[0-3]):[0-5]\d$/;
+  const formato =
+    /^([01]\d|2[0-3]):[0-5]\d$/;
 
   if (!formato.test(hora)) {
     const error = new Error(
@@ -64,46 +92,78 @@ const validarHora = (hora) => {
     );
 
     error.statusCode = 400;
+
     throw error;
   }
 
   return hora;
 };
 
-const limpiarTelefono = (telefono) => {
-  return String(telefono || "").replace(/\D/g, "");
-};
-
-const convertirDiaJavaScriptADiaBaseDatos = (diaJavaScript) => {
-  return diaJavaScript === 0 ? 7 : diaJavaScript;
+const convertirDiaJavaScriptADiaBaseDatos = (
+  diaJavaScript
+) => {
+  return diaJavaScript === 0
+    ? 7
+    : diaJavaScript;
 };
 
 export const registrarTurno = async ({
   barberoId,
   servicioId,
+  promocionId = null,
   fecha,
   hora,
-  cliente,
 }) => {
-  const barberoIdValidado = validarId(barberoId, "barberoId");
-  const servicioIdValidado = validarId(servicioId, "servicioId");
-  const fechaObjeto = validarFecha(fecha);
-  const horaInicio = validarHora(hora);
+  const barberoIdValidado =
+    validarId(
+      barberoId,
+      "barberoId"
+    );
 
-  const fechaHoraActual = obtenerFechaHoraActualArgentina();
+  const servicioIdValidado =
+    validarId(
+      servicioId,
+      "servicioId"
+    );
 
-  if (fecha < fechaHoraActual.fecha) {
+  const promocionIdValidado =
+    promocionId !== null &&
+    promocionId !== undefined &&
+    promocionId !== ""
+      ? validarId(
+          promocionId,
+          "promocionId"
+        )
+      : null;
+
+  const fechaObjeto =
+    validarFecha(fecha);
+
+  const horaInicio =
+    validarHora(hora);
+
+  const fechaHoraActual =
+    obtenerFechaHoraActualArgentina();
+
+  if (
+    fecha <
+    fechaHoraActual.fecha
+  ) {
     const error = new Error(
       "No se puede reservar un turno en una fecha pasada"
     );
 
     error.statusCode = 400;
+
     throw error;
   }
 
   if (
-    fecha === fechaHoraActual.fecha &&
-    convertirHoraAMinutos(horaInicio) <=
+    fecha ===
+      fechaHoraActual.fecha &&
+    convertirHoraAMinutos(
+      horaInicio
+    ) <=
       fechaHoraActual.minutosActuales
   ) {
     const error = new Error(
@@ -111,78 +171,95 @@ export const registrarTurno = async ({
     );
 
     error.statusCode = 400;
+
     throw error;
   }
 
-  const nombre = String(cliente?.nombre || "").trim();
-  const telefono = limpiarTelefono(cliente?.telefono);
-  const observacion = String(
-    cliente?.observacion || ""
-  ).trim();
-
-  if (nombre.length < 3) {
-    const error = new Error(
-      "El nombre debe tener al menos 3 caracteres"
-    );
-
-    error.statusCode = 400;
-    throw error;
-  }
-
-  if (telefono.length < 8) {
-    const error = new Error(
-      "El teléfono ingresado no es válido"
-    );
-
-    error.statusCode = 400;
-    throw error;
-  }
-
-  if (observacion.length > 500) {
-    const error = new Error(
-      "La observación no puede superar los 500 caracteres"
-    );
-
-    error.statusCode = 400;
-    throw error;
-  }
-
-  const connection = await pool.getConnection();
+  const connection =
+    await pool.getConnection();
 
   try {
     await connection.beginTransaction();
 
-    /*
-     * Bloqueamos la fila del barbero mientras verificamos y creamos
-     * el turno. Así dos confirmaciones simultáneas para el mismo
-     * barbero no pasan la validación al mismo tiempo.
-     */
-    const barbero = await bloquearBarbero(
-      connection,
-      barberoIdValidado
-    );
+    const barbero =
+      await bloquearBarbero(
+        connection,
+        barberoIdValidado
+      );
 
-    if (!barbero || !barbero.activo) {
+    if (
+      !barbero ||
+      !barbero.activo
+    ) {
       const error = new Error(
         "El profesional no existe o está inactivo"
       );
 
       error.statusCode = 404;
+
       throw error;
     }
 
-    const servicio = await obtenerServicioParaTurno(
-      connection,
-      servicioIdValidado
-    );
+    const servicio =
+      await obtenerServicioParaTurno(
+        connection,
+        servicioIdValidado
+      );
 
-    if (!servicio || !servicio.activo) {
+    if (
+      !servicio ||
+      !servicio.activo
+    ) {
       const error = new Error(
         "El servicio no existe o está inactivo"
       );
 
       error.statusCode = 404;
+
       throw error;
+    }
+
+    /*
+     * Si viene promocionId,
+     * buscamos y validamos la promoción.
+     */
+    let promocion = null;
+
+    if (promocionIdValidado) {
+      promocion =
+        await obtenerPromocionParaTurno(
+          connection,
+          promocionIdValidado
+        );
+
+      if (
+        !promocion ||
+        !promocion.activo
+      ) {
+        const error = new Error(
+          "La promoción no existe o está inactiva"
+        );
+
+        error.statusCode = 404;
+
+        throw error;
+      }
+
+      if (
+        !promocion.servicioId ||
+        Number(
+          promocion.servicioId
+        ) !==
+          servicioIdValidado
+      ) {
+        const error = new Error(
+          "La promoción no corresponde al servicio seleccionado"
+        );
+
+        error.statusCode = 400;
+
+        throw error;
+      }
     }
 
     const realizaServicio =
@@ -198,25 +275,55 @@ export const registrarTurno = async ({
       );
 
       error.statusCode = 400;
+
       throw error;
     }
 
-    const horaFin = sumarMinutosAHora(
-      horaInicio,
-      servicio.duracionMinutos
-    );
+    /*
+     * Si es promo:
+     * usamos duración y precio de la promo.
+     *
+     * Si es servicio normal:
+     * usamos duración y precio del servicio.
+     */
+    const duracionReserva =
+      promocion
+        ? Number(
+            promocion.duracionMinutos
+          )
+        : Number(
+            servicio.duracionMinutos
+          );
 
-    const diaSemana = convertirDiaJavaScriptADiaBaseDatos(
-      fechaObjeto.getDay()
-    );
+    const precioReserva =
+      promocion
+        ? promocion.precio
+        : servicio.precio;
+
+    const horaFin =
+      sumarMinutosAHora(
+        horaInicio,
+        duracionReserva
+      );
+
+    const diaSemana =
+      convertirDiaJavaScriptADiaBaseDatos(
+        fechaObjeto.getDay()
+      );
 
     const trabajaEnEseHorario =
-      await verificarHorarioLaboral(connection, {
-        barberoId: barberoIdValidado,
-        diaSemana,
-        horaInicio,
-        horaFin,
-      });
+      await verificarHorarioLaboral(
+        connection,
+        {
+          barberoId:
+            barberoIdValidado,
+
+          diaSemana,
+
+          horaInicio,
+          horaFin,
+        }
+      );
 
     if (!trabajaEnEseHorario) {
       const error = new Error(
@@ -224,18 +331,22 @@ export const registrarTurno = async ({
       );
 
       error.statusCode = 400;
+
       throw error;
     }
 
-    const turnoSuperpuesto = await buscarTurnoSuperpuesto(
-      connection,
-      {
-        barberoId: barberoIdValidado,
-        fecha,
-        horaInicio,
-        horaFin,
-      }
-    );
+    const turnoSuperpuesto =
+      await buscarTurnoSuperpuesto(
+        connection,
+        {
+          barberoId:
+            barberoIdValidado,
+
+          fecha,
+          horaInicio,
+          horaFin,
+        }
+      );
 
     if (turnoSuperpuesto) {
       const error = new Error(
@@ -243,57 +354,57 @@ export const registrarTurno = async ({
       );
 
       error.statusCode = 409;
+
       throw error;
     }
 
-    const clienteExistente = await buscarClientePorTelefono(
-      connection,
-      telefono
-    );
+    const codigo =
+      generarCodigoTurno();
 
-    let clienteId;
+    const turnoId =
+      await crearTurno(
+        connection,
+        {
+          codigo,
 
-    if (clienteExistente) {
-      clienteId = clienteExistente.id;
+          clienteId: null,
 
-      if (clienteExistente.nombre !== nombre) {
-        await actualizarNombreCliente(connection, {
-          clienteId,
-          nombre,
-        });
-      }
-    } else {
-      clienteId = await crearCliente(connection, {
-        nombre,
-        telefono,
-      });
-    }
+          barberoId:
+            barberoIdValidado,
 
-    const codigo = generarCodigoTurno();
+          servicioId:
+            servicioIdValidado,
 
-    const turnoId = await crearTurno(connection, {
-      codigo,
-      clienteId,
-      barberoId: barberoIdValidado,
-      servicioId: servicioIdValidado,
-      fecha,
-      horaInicio,
-      horaFin,
-      duracionMinutos: servicio.duracionMinutos,
-      precio: servicio.precio,
-      observacion,
-    });
+          promocionId:
+            promocionIdValidado,
 
-    const turnoCreado = await obtenerTurnoCreado(
-      connection,
-      turnoId
-    );
+          fecha,
+
+          horaInicio,
+          horaFin,
+
+          duracionMinutos:
+            duracionReserva,
+
+          precio:
+            precioReserva,
+
+          observacion: null,
+        }
+      );
+
+    const turnoCreado =
+      await obtenerTurnoCreado(
+        connection,
+        turnoId
+      );
 
     await connection.commit();
 
     return turnoCreado;
   } catch (error) {
     await connection.rollback();
+
     throw error;
   } finally {
     connection.release();

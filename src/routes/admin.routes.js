@@ -1,6 +1,8 @@
 import { Router } from "express";
 
-import { obtenerPerfilAdministrador } from "../controllers/admin.controller.js";
+import {
+  obtenerPerfilAdministrador,
+} from "../controllers/admin.controller.js";
 
 import {
   cambiarEstadoTurnoAdministrador,
@@ -9,6 +11,7 @@ import {
 
 import {
   actualizarServicioAdministrador,
+  crearServicioAdministradorController,
   obtenerServiciosAdministrador,
 } from "../controllers/admin-servicios.controller.js";
 
@@ -19,20 +22,36 @@ import {
   obtenerHorariosAdministrador,
 } from "../controllers/admin-horarios.controller.js";
 
-import { verificarAdministrador } from "../middlewares/auth.middleware.js";
+import {
+  actualizarPromocionAdministrador,
+  crearPromocionAdministradorController,
+  eliminarPromocionAdministradorController,
+  obtenerPromocionesAdministrador,
+} from "../controllers/admin-promociones.controller.js";
+
+import {
+  verificarAdministrador,
+} from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
 /*
- * Todas las rutas definidas después de este middleware
- * requieren un JWT administrativo válido.
+ * Todas las rutas definidas después
+ * de este middleware requieren
+ * un JWT administrativo válido.
  */
-router.use(verificarAdministrador);
+router.use(
+  verificarAdministrador
+);
+
+/* PERFIL */
 
 router.get(
   "/perfil",
   obtenerPerfilAdministrador
 );
+
+/* TURNOS */
 
 router.get(
   "/turnos",
@@ -43,15 +62,25 @@ router.patch(
   "/turnos/:id/estado",
   cambiarEstadoTurnoAdministrador
 );
+
+/* SERVICIOS */
+
 router.get(
   "/servicios",
   obtenerServiciosAdministrador
+);
+
+router.post(
+  "/servicios",
+  crearServicioAdministradorController
 );
 
 router.patch(
   "/servicios/:id",
   actualizarServicioAdministrador
 );
+
+/* HORARIOS */
 
 router.get(
   "/horarios",
@@ -71,6 +100,28 @@ router.patch(
 router.delete(
   "/horarios/:id",
   eliminarHorarioAdministradorController
+);
+
+/* PROMOCIONES */
+
+router.get(
+  "/promociones",
+  obtenerPromocionesAdministrador
+);
+
+router.post(
+  "/promociones",
+  crearPromocionAdministradorController
+);
+
+router.patch(
+  "/promociones/:id",
+  actualizarPromocionAdministrador
+);
+
+router.delete(
+  "/promociones/:id",
+  eliminarPromocionAdministradorController
 );
 
 export default router;

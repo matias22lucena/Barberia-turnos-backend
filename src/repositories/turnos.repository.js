@@ -1,4 +1,7 @@
-export const bloquearBarbero = async (connection, barberoId) => {
+export const bloquearBarbero = async (
+  connection,
+  barberoId
+) => {
   const [rows] = await connection.execute(
     `
       SELECT
@@ -32,6 +35,30 @@ export const obtenerServicioParaTurno = async (
       LIMIT 1
     `,
     [servicioId]
+  );
+
+  return rows[0] || null;
+};
+
+export const obtenerPromocionParaTurno = async (
+  connection,
+  promocionId
+) => {
+  const [rows] = await connection.execute(
+    `
+      SELECT
+        id,
+        servicio_id AS servicioId,
+        titulo,
+        descripcion,
+        duracion_minutos AS duracionMinutos,
+        precio,
+        activo
+      FROM promociones
+      WHERE id = ?
+      LIMIT 1
+    `,
+    [promocionId]
   );
 
   return rows[0] || null;
@@ -78,7 +105,12 @@ export const verificarHorarioLaboral = async (
         AND hora_fin >= ?
       LIMIT 1
     `,
-    [barberoId, diaSemana, horaInicio, horaFin]
+    [
+      barberoId,
+      diaSemana,
+      horaInicio,
+      horaFin,
+    ]
   );
 
   return rows.length > 0;
@@ -107,11 +139,22 @@ export const buscarTurnoSuperpuesto = async (
         AND hora_fin > ?
       LIMIT 1
     `,
-    [barberoId, fecha, horaFin, horaInicio]
+    [
+      barberoId,
+      fecha,
+      horaFin,
+      horaInicio,
+    ]
   );
 
   return rows[0] || null;
 };
+
+/*
+ * Estas funciones de clientes pueden quedar por ahora.
+ * Ya no se usan en el flujo público actual,
+ * pero no molestan.
+ */
 
 export const buscarClientePorTelefono = async (
   connection,
@@ -178,6 +221,7 @@ export const crearTurno = async (
     clienteId,
     barberoId,
     servicioId,
+    promocionId,
     fecha,
     horaInicio,
     horaFin,
@@ -193,6 +237,7 @@ export const crearTurno = async (
         cliente_id,
         barbero_id,
         servicio_id,
+        promocion_id,
         fecha,
         hora_inicio,
         hora_fin,
@@ -201,13 +246,27 @@ export const crearTurno = async (
         observacion,
         estado
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'CONFIRMADO')
+      VALUES (
+        ?,
+        ?,
+        ?,
+        ?,
+        ?,
+        ?,
+        ?,
+        ?,
+        ?,
+        ?,
+        ?,
+        'CONFIRMADO'
+      )
     `,
     [
       codigo,
       clienteId,
       barberoId,
       servicioId,
+      promocionId || null,
       fecha,
       horaInicio,
       horaFin,
@@ -229,9 +288,22 @@ export const obtenerTurnoCreado = async (
       SELECT
         t.id,
         t.codigo,
-        t.fecha,
-        TIME_FORMAT(t.hora_inicio, '%H:%i') AS horaInicio,
-        TIME_FORMAT(t.hora_fin, '%H:%i') AS horaFin,
+
+        DATE_FORMAT(
+          t.fecha,
+          '%Y-%m-%d'
+        ) AS fecha,
+
+        TIME_FORMAT(
+          t.hora_inicio,
+          '%H:%i'
+        ) AS horaInicio,
+
+        TIME_FORMAT(
+          t.hora_fin,
+          '%H:%i'
+        ) AS horaFin,
+
         t.duracion_minutos AS duracionMinutos,
         t.precio,
         t.observacion,
@@ -243,13 +315,17 @@ export const obtenerTurnoCreado = async (
 
         b.id AS barberoId,
         b.nombre AS barberoNombre,
+        b.apellido AS barberoApellido,
 
         s.id AS servicioId,
-        s.nombre AS servicioNombre
+        s.nombre AS servicioNombre,
+
+        p.id AS promocionId,
+        p.titulo AS promocionTitulo
 
       FROM turnos t
 
-      INNER JOIN clientes c
+      LEFT JOIN clientes c
         ON c.id = t.cliente_id
 
       INNER JOIN barberos b
@@ -258,7 +334,11 @@ export const obtenerTurnoCreado = async (
       INNER JOIN servicios s
         ON s.id = t.servicio_id
 
+      LEFT JOIN promociones p
+        ON p.id = t.promocion_id
+
       WHERE t.id = ?
+
       LIMIT 1
     `,
     [turnoId]
@@ -266,6 +346,7 @@ export const obtenerTurnoCreado = async (
 
   return rows[0] || null;
 };
+
 export const listarTurnosAdmin = async (
   connection,
   {
@@ -277,18 +358,26 @@ export const listarTurnosAdmin = async (
   const parametros = [];
 
   if (fecha) {
-    condiciones.push("t.fecha = ?");
+    condiciones.push(
+      "t.fecha = ?"
+    );
+
     parametros.push(fecha);
   }
 
   if (estado) {
-    condiciones.push("t.estado = ?");
+    condiciones.push(
+      "t.estado = ?"
+    );
+
     parametros.push(estado);
   }
 
   const where =
     condiciones.length > 0
-      ? `WHERE ${condiciones.join(" AND ")}`
+      ? `WHERE ${condiciones.join(
+          " AND "
+        )}`
       : "";
 
   const [rows] = await connection.execute(
@@ -296,9 +385,22 @@ export const listarTurnosAdmin = async (
       SELECT
         t.id,
         t.codigo,
-        DATE_FORMAT(t.fecha, '%Y-%m-%d') AS fecha,
-        TIME_FORMAT(t.hora_inicio, '%H:%i') AS horaInicio,
-        TIME_FORMAT(t.hora_fin, '%H:%i') AS horaFin,
+
+        DATE_FORMAT(
+          t.fecha,
+          '%Y-%m-%d'
+        ) AS fecha,
+
+        TIME_FORMAT(
+          t.hora_inicio,
+          '%H:%i'
+        ) AS horaInicio,
+
+        TIME_FORMAT(
+          t.hora_fin,
+          '%H:%i'
+        ) AS horaFin,
+
         t.duracion_minutos AS duracionMinutos,
         t.precio,
         t.observacion,
@@ -314,11 +416,14 @@ export const listarTurnosAdmin = async (
         b.apellido AS barberoApellido,
 
         s.id AS servicioId,
-        s.nombre AS servicioNombre
+        s.nombre AS servicioNombre,
+
+        p.id AS promocionId,
+        p.titulo AS promocionTitulo
 
       FROM turnos t
 
-      INNER JOIN clientes c
+      LEFT JOIN clientes c
         ON c.id = t.cliente_id
 
       INNER JOIN barberos b
@@ -326,6 +431,9 @@ export const listarTurnosAdmin = async (
 
       INNER JOIN servicios s
         ON s.id = t.servicio_id
+
+      LEFT JOIN promociones p
+        ON p.id = t.promocion_id
 
       ${where}
 
@@ -371,6 +479,9 @@ export const actualizarEstadoTurno = async (
       SET estado = ?
       WHERE id = ?
     `,
-    [estado, turnoId]
+    [
+      estado,
+      turnoId,
+    ]
   );
 };

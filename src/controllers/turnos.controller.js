@@ -1,40 +1,48 @@
-import { registrarTurno } from "../services/turnos.service.js";
+import {
+  registrarTurno,
+} from "../services/turnos.service.js";
 
-export const crearTurno = async (req, res, next) => {
+export const crearTurno = async (
+  req,
+  res,
+  next
+) => {
   try {
     const {
       barberoId,
       servicioId,
+      promocionId,
       fecha,
       hora,
-      cliente,
     } = req.body;
 
     if (
       !barberoId ||
       !servicioId ||
       !fecha ||
-      !hora ||
-      !cliente
+      !hora
     ) {
       return res.status(400).json({
         ok: false,
         message:
-          "barberoId, servicioId, fecha, hora y cliente son obligatorios",
+          "barberoId, servicioId, fecha y hora son obligatorios",
       });
     }
 
-    const turno = await registrarTurno({
-      barberoId,
-      servicioId,
-      fecha,
-      hora,
-      cliente,
-    });
+    const turno =
+      await registrarTurno({
+        barberoId,
+        servicioId,
+        promocionId:
+          promocionId || null,
+        fecha,
+        hora,
+      });
 
     res.status(201).json({
       ok: true,
-      message: "Turno reservado correctamente",
+      message:
+        "Turno reservado correctamente",
       data: turno,
     });
   } catch (error) {

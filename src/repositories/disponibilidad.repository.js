@@ -1,6 +1,8 @@
 import pool from "../config/database.js";
 
-export const obtenerServicioPorId = async (servicioId) => {
+export const obtenerServicioPorId = async (
+  servicioId
+) => {
   const [rows] = await pool.execute(
     `
       SELECT
@@ -18,12 +20,38 @@ export const obtenerServicioPorId = async (servicioId) => {
   return rows[0] || null;
 };
 
-export const obtenerBarberoPorId = async (barberoId) => {
+export const obtenerPromocionPorId = async (
+  promocionId
+) => {
+  const [rows] = await pool.execute(
+    `
+      SELECT
+        id,
+        servicio_id AS servicioId,
+        titulo,
+        descripcion,
+        duracion_minutos AS duracionMinutos,
+        precio,
+        activo
+      FROM promociones
+      WHERE id = ?
+      LIMIT 1
+    `,
+    [promocionId]
+  );
+
+  return rows[0] || null;
+};
+
+export const obtenerBarberoPorId = async (
+  barberoId
+) => {
   const [rows] = await pool.execute(
     `
       SELECT
         id,
         nombre,
+        apellido,
         activo
       FROM barberos
       WHERE id = ?
@@ -48,7 +76,10 @@ export const verificarBarberoRealizaServicio = async (
         AND servicio_id = ?
       LIMIT 1
     `,
-    [barberoId, servicioId]
+    [
+      barberoId,
+      servicioId,
+    ]
   );
 
   return rows.length > 0;
@@ -62,15 +93,29 @@ export const obtenerFranjasLaborales = async (
     `
       SELECT
         id,
-        TIME_FORMAT(hora_inicio, '%H:%i') AS horaInicio,
-        TIME_FORMAT(hora_fin, '%H:%i') AS horaFin
+
+        TIME_FORMAT(
+          hora_inicio,
+          '%H:%i'
+        ) AS horaInicio,
+
+        TIME_FORMAT(
+          hora_fin,
+          '%H:%i'
+        ) AS horaFin
+
       FROM horarios_barberos
+
       WHERE barbero_id = ?
         AND dia_semana = ?
         AND activo = 1
+
       ORDER BY hora_inicio ASC
     `,
-    [barberoId, diaSemana]
+    [
+      barberoId,
+      diaSemana,
+    ]
   );
 
   return rows;
@@ -84,15 +129,29 @@ export const obtenerTurnosOcupadosPorFecha = async (
     `
       SELECT
         id,
-        TIME_FORMAT(hora_inicio, '%H:%i') AS horaInicio,
-        TIME_FORMAT(hora_fin, '%H:%i') AS horaFin
+
+        TIME_FORMAT(
+          hora_inicio,
+          '%H:%i'
+        ) AS horaInicio,
+
+        TIME_FORMAT(
+          hora_fin,
+          '%H:%i'
+        ) AS horaFin
+
       FROM turnos
+
       WHERE barbero_id = ?
         AND fecha = ?
         AND estado = 'CONFIRMADO'
+
       ORDER BY hora_inicio ASC
     `,
-    [barberoId, fecha]
+    [
+      barberoId,
+      fecha,
+    ]
   );
 
   return rows;
