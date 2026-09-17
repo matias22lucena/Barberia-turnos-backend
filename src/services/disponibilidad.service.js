@@ -39,7 +39,9 @@ const validarId = (
   return id;
 };
 
-const validarFecha = (fecha) => {
+const validarFecha = (
+  fecha
+) => {
   const formatoFecha =
     /^\d{4}-\d{2}-\d{2}$/;
 
@@ -137,9 +139,7 @@ export const obtenerDisponibilidad = async ({
     );
 
   const promocionIdValidado =
-    promocionId !== null &&
-    promocionId !== undefined &&
-    promocionId !== ""
+    promocionId
       ? validarId(
           promocionId,
           "promocionId"
@@ -169,7 +169,9 @@ export const obtenerDisponibilidad = async ({
 
   let promocion = null;
 
-  if (promocionIdValidado) {
+  if (
+    promocionIdValidado
+  ) {
     promocion =
       await obtenerPromocionPorId(
         promocionIdValidado
@@ -189,11 +191,10 @@ export const obtenerDisponibilidad = async ({
     }
 
     if (
-      !promocion.servicioId ||
       Number(
         promocion.servicioId
       ) !==
-        servicioIdValidado
+      servicioIdValidado
     ) {
       const error = new Error(
         "La promoción no corresponde al servicio seleccionado"
@@ -229,7 +230,9 @@ export const obtenerDisponibilidad = async ({
       servicioIdValidado
     );
 
-  if (!realizaServicio) {
+  if (
+    !realizaServicio
+  ) {
     const error = new Error(
       "El barbero seleccionado no realiza este servicio"
     );
@@ -240,9 +243,9 @@ export const obtenerDisponibilidad = async ({
   }
 
   /*
-   * La duración efectiva depende
-   * de si se está reservando
-   * servicio o promoción.
+   * En una promo paquete,
+   * duracionMinutos es la duración
+   * de CADA visita.
    */
   const duracionReserva =
     promocion
@@ -296,23 +299,20 @@ export const obtenerDisponibilidad = async ({
             duracionReserva
           );
 
-        const tieneSuperposicion =
-          turnosOcupados.some(
-            (
-              turnoExistente
-            ) =>
-              horarioSeSuperpone({
-                nuevaHoraInicio:
-                  horaInicio,
+        return !turnosOcupados.some(
+          (
+            turnoExistente
+          ) =>
+            horarioSeSuperpone({
+              nuevaHoraInicio:
+                horaInicio,
 
-                nuevaHoraFin:
-                  horaFin,
+              nuevaHoraFin:
+                horaFin,
 
-                turnoExistente,
-              })
-          );
-
-        return !tieneSuperposicion;
+              turnoExistente,
+            })
+        );
       }
     );
 
@@ -322,9 +322,6 @@ export const obtenerDisponibilidad = async ({
   let horariosDisponibles =
     horariosSinSuperposiciones;
 
-  /*
-   * Fecha anterior.
-   */
   if (
     fecha <
     fechaHoraActual.fecha
@@ -332,10 +329,6 @@ export const obtenerDisponibilidad = async ({
     horariosDisponibles = [];
   }
 
-  /*
-   * Hoy: quitamos horarios
-   * que ya comenzaron.
-   */
   if (
     fecha ===
     fechaHoraActual.fecha
@@ -354,30 +347,46 @@ export const obtenerDisponibilidad = async ({
     fecha,
 
     barbero: {
-      id: barbero.id,
-      nombre: barbero.nombre,
+      id:
+        barbero.id,
+
+      nombre:
+        barbero.nombre,
+
       apellido:
         barbero.apellido,
     },
 
     servicio: {
-      id: servicio.id,
-      nombre: servicio.nombre,
+      id:
+        servicio.id,
+
+      nombre:
+        servicio.nombre,
+
       duracionMinutos:
         servicio.duracionMinutos,
     },
 
-    promocion: promocion
-      ? {
-          id: promocion.id,
-          titulo:
-            promocion.titulo,
-          duracionMinutos:
-            promocion.duracionMinutos,
-          precio:
-            promocion.precio,
-        }
-      : null,
+    promocion:
+      promocion
+        ? {
+            id:
+              promocion.id,
+
+            titulo:
+              promocion.titulo,
+
+            cantidadServicios:
+              promocion.cantidadServicios,
+
+            duracionMinutos:
+              promocion.duracionMinutos,
+
+            precio:
+              promocion.precio,
+          }
+        : null,
 
     duracionReserva,
 

@@ -49,6 +49,7 @@ export const obtenerPromocionParaTurno = async (
       SELECT
         id,
         servicio_id AS servicioId,
+        cantidad_servicios AS cantidadServicios,
         titulo,
         descripcion,
         duracion_minutos AS duracionMinutos,
@@ -71,14 +72,16 @@ export const verificarRelacionBarberoServicio = async (
 ) => {
   const [rows] = await connection.execute(
     `
-      SELECT
-        barbero_id
+      SELECT barbero_id
       FROM barbero_servicios
       WHERE barbero_id = ?
         AND servicio_id = ?
       LIMIT 1
     `,
-    [barberoId, servicioId]
+    [
+      barberoId,
+      servicioId,
+    ]
   );
 
   return rows.length > 0;
@@ -95,8 +98,7 @@ export const verificarHorarioLaboral = async (
 ) => {
   const [rows] = await connection.execute(
     `
-      SELECT
-        id
+      SELECT id
       FROM horarios_barberos
       WHERE barbero_id = ?
         AND dia_semana = ?
@@ -150,12 +152,6 @@ export const buscarTurnoSuperpuesto = async (
   return rows[0] || null;
 };
 
-/*
- * Estas funciones de clientes pueden quedar por ahora.
- * Ya no se usan en el flujo público actual,
- * pero no molestan.
- */
-
 export const buscarClientePorTelefono = async (
   connection,
   telefono
@@ -191,7 +187,10 @@ export const crearCliente = async (
       )
       VALUES (?, ?)
     `,
-    [nombre, telefono]
+    [
+      nombre,
+      telefono,
+    ]
   );
 
   return result.insertId;
@@ -210,7 +209,10 @@ export const actualizarNombreCliente = async (
       SET nombre = ?
       WHERE id = ?
     `,
-    [nombre, clienteId]
+    [
+      nombre,
+      clienteId,
+    ]
   );
 };
 
@@ -222,6 +224,10 @@ export const crearTurno = async (
     barberoId,
     servicioId,
     promocionId,
+    codigoGrupoPromocion = null,
+    numeroTurnoPromocion = null,
+    cantidadTurnosPromocion = null,
+    precioTotalPromocion = null,
     fecha,
     horaInicio,
     horaFin,
@@ -238,6 +244,10 @@ export const crearTurno = async (
         barbero_id,
         servicio_id,
         promocion_id,
+        codigo_grupo_promocion,
+        numero_turno_promocion,
+        cantidad_turnos_promocion,
+        precio_total_promocion,
         fecha,
         hora_inicio,
         hora_fin,
@@ -247,17 +257,9 @@ export const crearTurno = async (
         estado
       )
       VALUES (
-        ?,
-        ?,
-        ?,
-        ?,
-        ?,
-        ?,
-        ?,
-        ?,
-        ?,
-        ?,
-        ?,
+        ?, ?, ?, ?, ?,
+        ?, ?, ?, ?,
+        ?, ?, ?, ?, ?, ?,
         'CONFIRMADO'
       )
     `,
@@ -267,6 +269,10 @@ export const crearTurno = async (
       barberoId,
       servicioId,
       promocionId || null,
+      codigoGrupoPromocion,
+      numeroTurnoPromocion,
+      cantidadTurnosPromocion,
+      precioTotalPromocion,
       fecha,
       horaInicio,
       horaFin,
@@ -306,8 +312,13 @@ export const obtenerTurnoCreado = async (
 
         t.duracion_minutos AS duracionMinutos,
         t.precio,
+        t.precio_total_promocion AS precioTotalPromocion,
         t.observacion,
         t.estado,
+
+        t.codigo_grupo_promocion AS codigoGrupoPromocion,
+        t.numero_turno_promocion AS numeroTurnoPromocion,
+        t.cantidad_turnos_promocion AS cantidadTurnosPromocion,
 
         c.id AS clienteId,
         c.nombre AS clienteNombre,
@@ -321,7 +332,8 @@ export const obtenerTurnoCreado = async (
         s.nombre AS servicioNombre,
 
         p.id AS promocionId,
-        p.titulo AS promocionTitulo
+        p.titulo AS promocionTitulo,
+        p.cantidad_servicios AS promocionCantidadServicios
 
       FROM turnos t
 
@@ -403,9 +415,14 @@ export const listarTurnosAdmin = async (
 
         t.duracion_minutos AS duracionMinutos,
         t.precio,
+        t.precio_total_promocion AS precioTotalPromocion,
         t.observacion,
         t.estado,
         t.created_at AS createdAt,
+
+        t.codigo_grupo_promocion AS codigoGrupoPromocion,
+        t.numero_turno_promocion AS numeroTurnoPromocion,
+        t.cantidad_turnos_promocion AS cantidadTurnosPromocion,
 
         c.id AS clienteId,
         c.nombre AS clienteNombre,
@@ -419,7 +436,8 @@ export const listarTurnosAdmin = async (
         s.nombre AS servicioNombre,
 
         p.id AS promocionId,
-        p.titulo AS promocionTitulo
+        p.titulo AS promocionTitulo,
+        p.cantidad_servicios AS promocionCantidadServicios
 
       FROM turnos t
 

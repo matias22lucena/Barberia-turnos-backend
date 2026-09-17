@@ -6,6 +6,13 @@ import {
 
 const router = Router();
 
-router.get("/", obtenerPromociones);
+/*
+ * Ruta pública.
+ * NO requiere token de administrador.
+ */
+router.get(
+  "/",
+  obtenerPromociones
+);
 
 export default router;

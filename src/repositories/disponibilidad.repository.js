@@ -28,6 +28,7 @@ export const obtenerPromocionPorId = async (
       SELECT
         id,
         servicio_id AS servicioId,
+        cantidad_servicios AS cantidadServicios,
         titulo,
         descripcion,
         duracion_minutos AS duracionMinutos,
@@ -69,8 +70,7 @@ export const verificarBarberoRealizaServicio = async (
 ) => {
   const [rows] = await pool.execute(
     `
-      SELECT
-        barbero_id
+      SELECT barbero_id
       FROM barbero_servicios
       WHERE barbero_id = ?
         AND servicio_id = ?

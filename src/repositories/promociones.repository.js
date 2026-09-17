@@ -1,158 +1,207 @@
 import pool from "../config/database.js";
 
-export const obtenerPromocionesActivas = async () => {
-  const [rows] = await pool.execute(`
-    SELECT
-      p.id,
-      p.servicio_id AS servicioId,
-      p.titulo,
-      p.descripcion,
-      p.precio,
-      p.duracion_minutos AS duracionMinutos,
-      p.activo,
+export const obtenerPromocionesActivas =
+  async () => {
+    const [rows] =
+      await pool.execute(`
+        SELECT
+          p.id,
+          p.servicio_id AS servicioId,
+          p.cantidad_servicios AS cantidadServicios,
+          p.titulo,
+          p.descripcion,
+          p.precio,
+          p.duracion_minutos AS duracionMinutos,
+          p.activo,
 
-      s.nombre AS servicioNombre
+          s.nombre AS servicioNombre
 
-    FROM promociones p
+        FROM promociones p
 
-    LEFT JOIN servicios s
-      ON s.id = p.servicio_id
+        LEFT JOIN servicios s
+          ON s.id = p.servicio_id
 
-    WHERE p.activo = 1
+        WHERE p.activo = 1
 
-    ORDER BY p.id ASC
-  `);
+        ORDER BY p.id ASC
+      `);
 
-  return rows;
-};
+    return rows;
+  };
 
-export const obtenerPromocionesAdmin = async () => {
-  const [rows] = await pool.execute(`
-    SELECT
-      p.id,
-      p.servicio_id AS servicioId,
-      p.titulo,
-      p.descripcion,
-      p.precio,
-      p.duracion_minutos AS duracionMinutos,
-      p.activo,
-      p.created_at AS createdAt,
-      p.updated_at AS updatedAt,
+export const obtenerPromocionesAdmin =
+  async () => {
+    const [rows] =
+      await pool.execute(`
+        SELECT
+          p.id,
+          p.servicio_id AS servicioId,
+          p.cantidad_servicios AS cantidadServicios,
+          p.titulo,
+          p.descripcion,
+          p.precio,
+          p.duracion_minutos AS duracionMinutos,
+          p.activo,
+          p.created_at AS createdAt,
+          p.updated_at AS updatedAt,
 
-      s.nombre AS servicioNombre
+          s.nombre AS servicioNombre
 
-    FROM promociones p
+        FROM promociones p
 
-    LEFT JOIN servicios s
-      ON s.id = p.servicio_id
+        LEFT JOIN servicios s
+          ON s.id = p.servicio_id
 
-    ORDER BY p.id ASC
-  `);
+        ORDER BY p.id ASC
+      `);
 
-  return rows;
-};
+    return rows;
+  };
 
-export const obtenerPromocionPorId = async (promocionId) => {
-  const [rows] = await pool.execute(
-    `
-      SELECT
-        p.id,
-        p.servicio_id AS servicioId,
-        p.titulo,
-        p.descripcion,
-        p.precio,
-        p.duracion_minutos AS duracionMinutos,
-        p.activo,
+export const obtenerPromocionPorId =
+  async (
+    promocionId
+  ) => {
+    const [rows] =
+      await pool.execute(
+        `
+          SELECT
+            p.id,
+            p.servicio_id AS servicioId,
+            p.cantidad_servicios AS cantidadServicios,
+            p.titulo,
+            p.descripcion,
+            p.precio,
+            p.duracion_minutos AS duracionMinutos,
+            p.activo,
 
-        s.nombre AS servicioNombre
+            s.nombre AS servicioNombre
 
-      FROM promociones p
+          FROM promociones p
 
-      LEFT JOIN servicios s
-        ON s.id = p.servicio_id
+          LEFT JOIN servicios s
+            ON s.id = p.servicio_id
 
-      WHERE p.id = ?
+          WHERE p.id = ?
 
-      LIMIT 1
-    `,
-    [promocionId]
-  );
+          LIMIT 1
+        `,
+        [
+          promocionId,
+        ]
+      );
 
-  return rows[0] || null;
-};
+    return (
+      rows[0] ||
+      null
+    );
+  };
 
-export const crearPromocionAdmin = async ({
-  servicioId,
-  titulo,
-  descripcion,
-  precio,
-  duracionMinutos,
-  activo,
-}) => {
-  const [result] = await pool.execute(
-    `
-      INSERT INTO promociones (
-        servicio_id,
+export const crearPromocionAdmin =
+  async ({
+    servicioId,
+    titulo,
+    descripcion,
+    precio,
+    duracionMinutos,
+    cantidadServicios,
+    activo,
+  }) => {
+    const [result] =
+      await pool.execute(
+        `
+          INSERT INTO promociones (
+            servicio_id,
+            cantidad_servicios,
+            titulo,
+            descripcion,
+            precio,
+            duracion_minutos,
+            activo
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+        `,
+        [
+          servicioId ||
+            null,
+
+          cantidadServicios,
+
+          titulo,
+
+          descripcion ||
+            null,
+
+          precio ??
+            null,
+
+          duracionMinutos,
+
+          activo,
+        ]
+      );
+
+    return result.insertId;
+  };
+
+export const actualizarPromocionAdmin =
+  async ({
+    promocionId,
+    servicioId,
+    titulo,
+    descripcion,
+    precio,
+    duracionMinutos,
+    cantidadServicios,
+    activo,
+  }) => {
+    await pool.execute(
+      `
+        UPDATE promociones
+        SET
+          servicio_id = ?,
+          cantidad_servicios = ?,
+          titulo = ?,
+          descripcion = ?,
+          precio = ?,
+          duracion_minutos = ?,
+          activo = ?
+        WHERE id = ?
+      `,
+      [
+        servicioId ||
+          null,
+
+        cantidadServicios,
+
         titulo,
-        descripcion,
-        precio,
-        duracion_minutos,
-        activo
-      )
-      VALUES (?, ?, ?, ?, ?, ?)
-    `,
-    [
-      servicioId || null,
-      titulo,
-      descripcion || null,
-      precio ?? null,
-      duracionMinutos,
-      activo,
-    ]
-  );
 
-  return result.insertId;
-};
+        descripcion ||
+          null,
 
-export const actualizarPromocionAdmin = async ({
-  promocionId,
-  servicioId,
-  titulo,
-  descripcion,
-  precio,
-  duracionMinutos,
-  activo,
-}) => {
-  await pool.execute(
-    `
-      UPDATE promociones
-      SET
-        servicio_id = ?,
-        titulo = ?,
-        descripcion = ?,
-        precio = ?,
-        duracion_minutos = ?,
-        activo = ?
-      WHERE id = ?
-    `,
-    [
-      servicioId || null,
-      titulo,
-      descripcion || null,
-      precio ?? null,
-      duracionMinutos,
-      activo,
-      promocionId,
-    ]
-  );
-};
+        precio ??
+          null,
 
-export const eliminarPromocionAdmin = async (promocionId) => {
-  await pool.execute(
-    `
-      DELETE FROM promociones
-      WHERE id = ?
-    `,
-    [promocionId]
-  );
-};
+        duracionMinutos,
+
+        activo,
+
+        promocionId,
+      ]
+    );
+  };
+
+export const eliminarPromocionAdmin =
+  async (
+    promocionId
+  ) => {
+    await pool.execute(
+      `
+        DELETE FROM promociones
+        WHERE id = ?
+      `,
+      [
+        promocionId,
+      ]
+    );
+  };
