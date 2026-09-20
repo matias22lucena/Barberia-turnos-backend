@@ -1,4 +1,6 @@
-import { Router } from "express";
+import {
+  Router,
+} from "express";
 
 import {
   obtenerPerfilAdministrador,
@@ -30,16 +32,23 @@ import {
 } from "../controllers/admin-promociones.controller.js";
 
 import {
+  actualizarImagenCarruselAdministrador,
+  crearImagenCarruselAdministrador,
+  eliminarImagenCarruselAdministrador,
+  obtenerCarruselAdministrador,
+} from "../controllers/admin-carrusel.controller.js";
+
+import {
   verificarAdministrador,
 } from "../middlewares/auth.middleware.js";
 
-const router = Router();
+import {
+  uploadCarrusel,
+} from "../middlewares/carrusel-upload.middleware.js";
 
-/*
- * Todas las rutas definidas después
- * de este middleware requieren
- * un JWT administrativo válido.
- */
+const router =
+  Router();
+
 router.use(
   verificarAdministrador
 );
@@ -122,6 +131,34 @@ router.patch(
 router.delete(
   "/promociones/:id",
   eliminarPromocionAdministradorController
+);
+
+/* CARRUSEL */
+
+router.get(
+  "/carrusel",
+  obtenerCarruselAdministrador
+);
+
+router.post(
+  "/carrusel",
+  uploadCarrusel.single(
+    "imagen"
+  ),
+  crearImagenCarruselAdministrador
+);
+
+router.patch(
+  "/carrusel/:id",
+  uploadCarrusel.single(
+    "imagen"
+  ),
+  actualizarImagenCarruselAdministrador
+);
+
+router.delete(
+  "/carrusel/:id",
+  eliminarImagenCarruselAdministrador
 );
 
 export default router;

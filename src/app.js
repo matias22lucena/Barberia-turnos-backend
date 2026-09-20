@@ -10,15 +10,30 @@ import barberosRoutes from "./routes/barberos.routes.js";
 import horariosRoutes from "./routes/horarios.routes.js";
 import disponibilidadRoutes from "./routes/disponibilidad.routes.js";
 import turnosRoutes from "./routes/turnos.routes.js";
+import carruselRoutes from "./routes/carrusel.routes.js";
+
 import authRoutes from "./routes/auth.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 
-import { notFoundHandler } from "./middlewares/notFound.middleware.js";
-import { errorHandler } from "./middlewares/error.middleware.js";
+import {
+  notFoundHandler,
+} from "./middlewares/notFound.middleware.js";
 
-const app = express();
+import {
+  errorHandler,
+} from "./middlewares/error.middleware.js";
 
-app.use(helmet());
+const app =
+  express();
+
+app.use(
+  helmet({
+    crossOriginResourcePolicy: {
+      policy:
+        "cross-origin",
+    },
+  })
+);
 
 app.use(
   cors({
@@ -29,43 +44,116 @@ app.use(
   })
 );
 
-app.use(express.json());
+app.use(
+  express.json()
+);
 
-app.get("/api/health", async (req, res) => {
-  try {
-    await pool.query("SELECT 1");
+/*
+ * Archivos públicos subidos
+ * desde el panel admin.
+ */
+app.use(
+  "/uploads",
+  express.static(
+    "uploads"
+  )
+);
 
-    res.status(200).json({
-      ok: true,
-      message: "API y MariaDB funcionando correctamente",
-      database: "connected",
-    });
-  } catch (error) {
-    res.status(503).json({
-      ok: false,
-      message: "La API funciona, pero MariaDB no está disponible",
-      database: "disconnected",
-    });
+app.get(
+  "/api/health",
+  async (
+    req,
+    res
+  ) => {
+    try {
+      await pool.query(
+        "SELECT 1"
+      );
+
+      res.status(
+        200
+      ).json({
+        ok: true,
+
+        message:
+          "API y MariaDB funcionando correctamente",
+
+        database:
+          "connected",
+      });
+    } catch (error) {
+      res.status(
+        503
+      ).json({
+        ok: false,
+
+        message:
+          "La API funciona, pero MariaDB no está disponible",
+
+        database:
+          "disconnected",
+      });
+    }
   }
-});
+);
 
 /* RUTAS PÚBLICAS */
 
-app.use("/api/servicios", serviciosRoutes);
-app.use("/api/promociones", promocionesRoutes);
-app.use("/api/barberos", barberosRoutes);
-app.use("/api/horarios", horariosRoutes);
-app.use("/api/disponibilidad", disponibilidadRoutes);
-app.use("/api/turnos", turnosRoutes);
+app.use(
+  "/api/servicios",
+  serviciosRoutes
+);
+
+app.use(
+  "/api/promociones",
+  promocionesRoutes
+);
+
+app.use(
+  "/api/barberos",
+  barberosRoutes
+);
+
+app.use(
+  "/api/horarios",
+  horariosRoutes
+);
+
+app.use(
+  "/api/disponibilidad",
+  disponibilidadRoutes
+);
+
+app.use(
+  "/api/turnos",
+  turnosRoutes
+);
+
+app.use(
+  "/api/carrusel",
+  carruselRoutes
+);
 
 /* AUTENTICACIÓN Y ADMIN */
 
-app.use("/api/auth", authRoutes);
-app.use("/api/admin", adminRoutes);
+app.use(
+  "/api/auth",
+  authRoutes
+);
+
+app.use(
+  "/api/admin",
+  adminRoutes
+);
 
 /* MANEJO DE ERRORES */
 
-app.use(notFoundHandler);
-app.use(errorHandler);
+app.use(
+  notFoundHandler
+);
+
+app.use(
+  errorHandler
+);
 
 export default app;
