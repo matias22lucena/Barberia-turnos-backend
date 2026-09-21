@@ -11,6 +11,7 @@ import horariosRoutes from "./routes/horarios.routes.js";
 import disponibilidadRoutes from "./routes/disponibilidad.routes.js";
 import turnosRoutes from "./routes/turnos.routes.js";
 import carruselRoutes from "./routes/carrusel.routes.js";
+import homeContenidoRoutes from "./routes/home-contenido.routes.js";
 
 import authRoutes from "./routes/auth.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
@@ -45,12 +46,13 @@ app.use(
 );
 
 app.use(
-  express.json()
+  express.json({
+    limit: "100kb",
+  })
 );
 
 /*
- * Archivos públicos subidos
- * desde el panel admin.
+ * Imágenes subidas desde administración.
  */
 app.use(
   "/uploads",
@@ -97,7 +99,9 @@ app.get(
   }
 );
 
+/* ========================= */
 /* RUTAS PÚBLICAS */
+/* ========================= */
 
 app.use(
   "/api/servicios",
@@ -134,7 +138,14 @@ app.use(
   carruselRoutes
 );
 
+app.use(
+  "/api/home-contenido",
+  homeContenidoRoutes
+);
+
+/* ========================= */
 /* AUTENTICACIÓN Y ADMIN */
+/* ========================= */
 
 app.use(
   "/api/auth",
@@ -146,7 +157,9 @@ app.use(
   adminRoutes
 );
 
-/* MANEJO DE ERRORES */
+/* ========================= */
+/* ERRORES */
+/* ========================= */
 
 app.use(
   notFoundHandler

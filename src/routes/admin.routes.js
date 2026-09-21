@@ -39,6 +39,13 @@ import {
 } from "../controllers/admin-carrusel.controller.js";
 
 import {
+  actualizarContenidoHomeAdministrador,
+  actualizarImagenHomeAdministrador,
+  eliminarImagenHomeAdministrador,
+  obtenerContenidoHomeAdministrador,
+} from "../controllers/admin-home-contenido.controller.js";
+
+import {
   verificarAdministrador,
 } from "../middlewares/auth.middleware.js";
 
@@ -46,9 +53,17 @@ import {
   uploadCarrusel,
 } from "../middlewares/carrusel-upload.middleware.js";
 
+import {
+  uploadHome,
+} from "../middlewares/home-upload.middleware.js";
+
 const router =
   Router();
 
+/*
+ * TODO LO QUE ESTÉ DEBAJO
+ * REQUIERE JWT DE ADMINISTRADOR.
+ */
 router.use(
   verificarAdministrador
 );
@@ -159,6 +174,31 @@ router.patch(
 router.delete(
   "/carrusel/:id",
   eliminarImagenCarruselAdministrador
+);
+
+/* CONTENIDO DEL HOME */
+
+router.get(
+  "/home-contenido",
+  obtenerContenidoHomeAdministrador
+);
+
+router.patch(
+  "/home-contenido",
+  actualizarContenidoHomeAdministrador
+);
+
+router.post(
+  "/home-contenido/imagen",
+  uploadHome.single(
+    "imagen"
+  ),
+  actualizarImagenHomeAdministrador
+);
+
+router.delete(
+  "/home-contenido/imagen",
+  eliminarImagenHomeAdministrador
 );
 
 export default router;
