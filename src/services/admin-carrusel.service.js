@@ -1,6 +1,3 @@
-import fs from "fs";
-import path from "path";
-
 import {
   actualizarImagenCarrusel,
   crearImagenCarrusel,
@@ -8,6 +5,11 @@ import {
   obtenerImagenCarruselPorId,
   obtenerImagenesCarruselAdmin,
 } from "../repositories/carrusel.repository.js";
+
+import {
+  subirImagenCloudinary,
+  eliminarImagenCloudinary,
+} from "../utils/cloudinary.js";
 
 const validarId = (
   valor
@@ -40,8 +42,7 @@ const validarTitulo = (
 ) => {
   const titulo =
     String(
-      valor ||
-        ""
+      valor || ""
     ).trim();
 
   if (
@@ -119,34 +120,31 @@ const convertirBoolean = (
   return true;
 };
 
-const eliminarArchivoFisico = (
-  imagenUrl
-) => {
-  if (!imagenUrl) {
-    return;
-  }
+/*
+ * Intenta eliminar una imagen de
+ * Cloudinary sin romper la operación
+ * principal si Cloudinary devuelve
+ * algún error.
+ */
+const eliminarImagenAnterior =
+  async (
+    publicId
+  ) => {
+    if (!publicId) {
+      return;
+    }
 
-  const rutaRelativa =
-    imagenUrl.replace(
-      /^\/+/,
-      ""
-    );
-
-  const ruta =
-    path.resolve(
-      rutaRelativa
-    );
-
-  if (
-    fs.existsSync(
-      ruta
-    )
-  ) {
-    fs.unlinkSync(
-      ruta
-    );
-  }
-};
+    try {
+      await eliminarImagenCloudinary(
+        publicId
+      );
+    } catch (error) {
+      console.error(
+        "No se pudo eliminar la imagen anterior de Cloudinary:",
+        error.message
+      );
+    }
+  };
 
 export const listarCarruselAdmin =
   async () => {
@@ -172,32 +170,69 @@ export const crearImagenCarruselAdmin =
       throw error;
     }
 
-    const imagenUrl =
-      `/uploads/carrusel/${archivo.filename}`;
+    /*
+     * Validamos antes de subir
+     * la imagen para no generar
+     * archivos huérfanos.
+     */
+    const tituloValidado =
+      validarTitulo(
+        titulo
+      );
 
-    const imagenId =
-      await crearImagenCarrusel({
-        imagenUrl,
+    const ordenValidado =
+      validarOrden(
+        orden
+      );
 
-        titulo:
-          validarTitulo(
-            titulo
-          ),
+    const activoValidado =
+      convertirBoolean(
+        activo
+      );
 
-        orden:
-          validarOrden(
-            orden
-          ),
+    /*
+     * Subimos la imagen.
+     */
+    const resultadoCloudinary =
+      await subirImagenCloudinary(
+        archivo,
+        "carrusel"
+      );
 
-        activo:
-          convertirBoolean(
-            activo
-          ),
-      });
+    try {
+      const imagenId =
+        await crearImagenCarrusel({
+          imagenUrl:
+            resultadoCloudinary.secure_url,
 
-    return await obtenerImagenCarruselPorId(
-      imagenId
-    );
+          cloudinaryPublicId:
+            resultadoCloudinary.public_id,
+
+          titulo:
+            tituloValidado,
+
+          orden:
+            ordenValidado,
+
+          activo:
+            activoValidado,
+        });
+
+      return await obtenerImagenCarruselPorId(
+        imagenId
+      );
+    } catch (error) {
+      /*
+       * Si falla MySQL después de
+       * subir a Cloudinary,
+       * eliminamos la imagen nueva.
+       */
+      await eliminarImagenAnterior(
+        resultadoCloudinary.public_id
+      );
+
+      throw error;
+    }
   };
 
 export const editarImagenCarruselAdmin =
@@ -230,43 +265,95 @@ export const editarImagenCarruselAdmin =
       throw error;
     }
 
+    const tituloValidado =
+      validarTitulo(
+        titulo
+      );
+
+    const ordenValidado =
+      validarOrden(
+        orden
+      );
+
+    const activoValidado =
+      convertirBoolean(
+        activo
+      );
+
     let imagenUrl =
       existente.imagenUrl;
 
+    let cloudinaryPublicId =
+      existente.cloudinaryPublicId;
+
+    let nuevaImagen =
+      null;
+
+    /*
+     * Solo subimos otra imagen
+     * si el administrador seleccionó
+     * un archivo nuevo.
+     */
     if (archivo) {
+      nuevaImagen =
+        await subirImagenCloudinary(
+          archivo,
+          "carrusel"
+        );
+
       imagenUrl =
-        `/uploads/carrusel/${archivo.filename}`;
+        nuevaImagen.secure_url;
+
+      cloudinaryPublicId =
+        nuevaImagen.public_id;
     }
 
-    await actualizarImagenCarrusel({
-      imagenId:
-        id,
+    try {
+      await actualizarImagenCarrusel({
+        imagenId:
+          id,
 
-      imagenUrl,
+        imagenUrl,
 
-      titulo:
-        validarTitulo(
-          titulo
-        ),
+        cloudinaryPublicId,
 
-      orden:
-        validarOrden(
-          orden
-        ),
+        titulo:
+          tituloValidado,
 
-      activo:
-        convertirBoolean(
-          activo
-        ),
-    });
+        orden:
+          ordenValidado,
 
+        activo:
+          activoValidado,
+      });
+    } catch (error) {
+      /*
+       * Si se subió una imagen nueva
+       * pero falló MySQL,
+       * la quitamos de Cloudinary.
+       */
+      if (nuevaImagen) {
+        await eliminarImagenAnterior(
+          nuevaImagen.public_id
+        );
+      }
+
+      throw error;
+    }
+
+    /*
+     * Recién después de confirmar
+     * el UPDATE eliminamos
+     * la imagen anterior.
+     */
     if (
-      archivo &&
-      existente.imagenUrl !==
-        imagenUrl
+      nuevaImagen &&
+      existente.cloudinaryPublicId &&
+      existente.cloudinaryPublicId !==
+        nuevaImagen.public_id
     ) {
-      eliminarArchivoFisico(
-        existente.imagenUrl
+      await eliminarImagenAnterior(
+        existente.cloudinaryPublicId
       );
     }
 
@@ -301,11 +388,23 @@ export const eliminarImagenCarruselAdmin =
       throw error;
     }
 
+    /*
+     * Primero eliminamos el registro
+     * de MySQL.
+     */
     await eliminarImagenCarrusel(
       id
     );
 
-    eliminarArchivoFisico(
-      existente.imagenUrl
-    );
+    /*
+     * Después eliminamos el recurso
+     * físico de Cloudinary.
+     */
+    if (
+      existente.cloudinaryPublicId
+    ) {
+      await eliminarImagenAnterior(
+        existente.cloudinaryPublicId
+      );
+    }
   };

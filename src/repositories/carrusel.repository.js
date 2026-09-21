@@ -30,6 +30,7 @@ export const obtenerImagenesCarruselAdmin =
         SELECT
           id,
           imagen_url AS imagenUrl,
+          cloudinary_public_id AS cloudinaryPublicId,
           titulo,
           orden,
           activo,
@@ -56,6 +57,7 @@ export const obtenerImagenCarruselPorId =
           SELECT
             id,
             imagen_url AS imagenUrl,
+            cloudinary_public_id AS cloudinaryPublicId,
             titulo,
             orden,
             activo
@@ -80,6 +82,7 @@ export const obtenerImagenCarruselPorId =
 export const crearImagenCarrusel =
   async ({
     imagenUrl,
+    cloudinaryPublicId,
     titulo,
     orden,
     activo,
@@ -89,16 +92,17 @@ export const crearImagenCarrusel =
         `
           INSERT INTO carrusel_imagenes (
             imagen_url,
+            cloudinary_public_id,
             titulo,
             orden,
             activo
           )
-          VALUES (?, ?, ?, ?)
+          VALUES (?, ?, ?, ?, ?)
         `,
         [
           imagenUrl,
-          titulo ||
-            null,
+          cloudinaryPublicId,
+          titulo || null,
           orden,
           activo,
         ]
@@ -111,6 +115,7 @@ export const actualizarImagenCarrusel =
   async ({
     imagenId,
     imagenUrl,
+    cloudinaryPublicId,
     titulo,
     orden,
     activo,
@@ -121,6 +126,7 @@ export const actualizarImagenCarrusel =
 
         SET
           imagen_url = ?,
+          cloudinary_public_id = ?,
           titulo = ?,
           orden = ?,
           activo = ?
@@ -129,8 +135,8 @@ export const actualizarImagenCarrusel =
       `,
       [
         imagenUrl,
-        titulo ||
-          null,
+        cloudinaryPublicId,
+        titulo || null,
         orden,
         activo,
         imagenId,

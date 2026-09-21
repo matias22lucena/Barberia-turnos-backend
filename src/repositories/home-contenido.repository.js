@@ -8,6 +8,7 @@ export const obtenerContenidoHome =
           id,
 
           hero_imagen_url AS heroImagenUrl,
+          hero_imagen_public_id AS heroImagenPublicId,
 
           hero_eyebrow AS heroEyebrow,
           hero_titulo AS heroTitulo,
@@ -154,20 +155,23 @@ export const actualizarContenidoHome =
   };
 
 export const actualizarImagenHome =
-  async (
-    imagenUrl
-  ) => {
+  async ({
+    imagenUrl,
+    heroImagenPublicId,
+  }) => {
     await pool.execute(
       `
         UPDATE home_contenido
 
         SET
-          hero_imagen_url = ?
+          hero_imagen_url = ?,
+          hero_imagen_public_id = ?
 
         WHERE id = 1
       `,
       [
         imagenUrl,
+        heroImagenPublicId,
       ]
     );
   };

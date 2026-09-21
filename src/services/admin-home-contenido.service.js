@@ -1,11 +1,13 @@
-import fs from "fs";
-import path from "path";
-
 import {
   actualizarContenidoHome,
   actualizarImagenHome,
   obtenerContenidoHome,
 } from "../repositories/home-contenido.repository.js";
+
+import {
+  subirImagenCloudinary,
+  eliminarImagenCloudinary,
+} from "../utils/cloudinary.js";
 
 const validarTexto = (
   valor,
@@ -47,50 +49,22 @@ const validarTexto = (
   return texto;
 };
 
-const obtenerRutaFisicaSegura = (
-  imagenUrl
-) => {
-  if (
-    !imagenUrl ||
-    !imagenUrl.startsWith(
-      "/uploads/home/"
-    )
-  ) {
-    return null;
-  }
-
-  const nombreArchivo =
-    path.basename(
-      imagenUrl
-    );
-
-  return path.resolve(
-    "uploads",
-    "home",
-    nombreArchivo
-  );
-};
-
-const eliminarArchivoFisico =
-  (
-    imagenUrl
+const eliminarImagenAnterior =
+  async (
+    publicId
   ) => {
-    const ruta =
-      obtenerRutaFisicaSegura(
-        imagenUrl
-      );
-
-    if (!ruta) {
+    if (!publicId) {
       return;
     }
 
-    if (
-      fs.existsSync(
-        ruta
-      )
-    ) {
-      fs.unlinkSync(
-        ruta
+    try {
+      await eliminarImagenCloudinary(
+        publicId
+      );
+    } catch (error) {
+      console.error(
+        "No se pudo eliminar la imagen anterior de Cloudinary:",
+        error.message
       );
     }
   };
@@ -324,10 +298,6 @@ export const cambiarImagenHomeAdmin =
       await obtenerContenidoHome();
 
     if (!contenido) {
-      eliminarArchivoFisico(
-        `/uploads/home/${archivo.filename}`
-      );
-
       const error =
         new Error(
           "No existe la configuración del Home"
@@ -339,28 +309,52 @@ export const cambiarImagenHomeAdmin =
       throw error;
     }
 
-    const nuevaUrl =
-      `/uploads/home/${archivo.filename}`;
+    /*
+     * Subimos la nueva imagen.
+     */
+    const resultadoCloudinary =
+      await subirImagenCloudinary(
+        archivo,
+        "home"
+      );
 
     try {
-      await actualizarImagenHome(
-        nuevaUrl
-      );
+      /*
+       * Guardamos URL y public_id
+       * en MySQL.
+       */
+      await actualizarImagenHome({
+        imagenUrl:
+          resultadoCloudinary.secure_url,
+
+        heroImagenPublicId:
+          resultadoCloudinary.public_id,
+      });
     } catch (error) {
-      eliminarArchivoFisico(
-        nuevaUrl
+      /*
+       * Si falla MySQL,
+       * eliminamos la imagen recién
+       * subida.
+       */
+      await eliminarImagenAnterior(
+        resultadoCloudinary.public_id
       );
 
       throw error;
     }
 
+    /*
+     * Si existía una imagen anterior
+     * de Cloudinary, la eliminamos
+     * después de actualizar MySQL.
+     */
     if (
-      contenido.heroImagenUrl &&
-      contenido.heroImagenUrl !==
-        nuevaUrl
+      contenido.heroImagenPublicId &&
+      contenido.heroImagenPublicId !==
+        resultadoCloudinary.public_id
     ) {
-      eliminarArchivoFisico(
-        contenido.heroImagenUrl
+      await eliminarImagenAnterior(
+        contenido.heroImagenPublicId
       );
     }
 
@@ -384,18 +378,29 @@ export const quitarImagenHomeAdmin =
       throw error;
     }
 
-    const imagenAnterior =
-      contenido.heroImagenUrl;
+    const publicIdAnterior =
+      contenido.heroImagenPublicId;
 
-    await actualizarImagenHome(
-      null
-    );
+    /*
+     * Primero limpiamos MySQL.
+     */
+    await actualizarImagenHome({
+      imagenUrl:
+        null,
 
+      heroImagenPublicId:
+        null,
+    });
+
+    /*
+     * Después eliminamos
+     * de Cloudinary.
+     */
     if (
-      imagenAnterior
+      publicIdAnterior
     ) {
-      eliminarArchivoFisico(
-        imagenAnterior
+      await eliminarImagenAnterior(
+        publicIdAnterior
       );
     }
 

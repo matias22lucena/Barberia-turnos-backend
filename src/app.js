@@ -36,12 +36,15 @@ app.use(
   })
 );
 
+const origenesPermitidos = [
+  "http://localhost:5173",
+  "http://192.168.100.17:5173",
+  process.env.FRONTEND_URL,
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "http://192.168.100.17:5173",
-    ],
+    origin: origenesPermitidos,
   })
 );
 
@@ -54,12 +57,12 @@ app.use(
 /*
  * Imágenes subidas desde administración.
  */
-app.use(
+/* app.use(
   "/uploads",
   express.static(
     "uploads"
   )
-);
+); */
 
 app.get(
   "/api/health",
